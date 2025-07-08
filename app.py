@@ -1,70 +1,101 @@
 import streamlit as st
 import pandas as pd
 import re
-import spacy
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from langdetect import detect
 from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
+from collections import Counter
 
-# 웹 설정
+nltk.download("punkt")
+nltk.download("stopwords")
+
 st.set_page_config(page_title="TF-IDF 키워드 추출기", layout="wide")
-st.title("🧠 특허 텍스트 기반 TF-IDF 키워드 추출기")
+st.title("🧠 특허 텍스트 기반 TF-IDF 키워드 추출기 (언어별 불용어 적용)")
 
-# 영어 자연어 처리 모델 불러오기
-nlp = spacy.load("en_core_web_sm")
+# 사용자 정의 불용어 리스트 (예시)
+patent_specific_korean_stopwords = set([
+    '발명', '청구항', '구성', '기재', '도면', '장치', '포함', '특성', '방법', '단계', '출원', '등록', '효력',
+    '권리', '기술', '분야', '해결', '수단', '된', '이용한', '하는', '할', '에', '의', '로', '및', '에서', '과', '와'
+])
+patent_specific_english_stopwords = set([
+    'invention', 'claim', 'embodiment', 'method', 'apparatus', 'device', 'system',
+    'means', 'unit', 'step', 'portion', 'member', 'element', 'section', 'example',
+    'fig', 'figure', 'said', 'wherein', 'thereof', 'therein', 'whereby', 'description',
+    'preferred', 'technical', 'field', 'summary', 'background', 'disclosure',
+    'advantages', 'features', 'object', 'objects', 'present', 'further'
+])
+default_en_stopwords = set(stopwords.words("english"))
+default_ko_stopwords = set(['그리고', '하지만', '그러나', '때문에', '위해', '또한', '및', '등'])
 
-# 파일 업로드
 uploaded_file = st.file_uploader("📤 엑셀(.xlsx) 파일을 업로드하세요", type=["xlsx"])
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
     st.success("✅ 파일 업로드 성공!")
     st.dataframe(df.head())
 
-    # 열 선택
-    selected_column = st.selectbox("🔎 TF-IDF 분석에 사용할 열을 선택하세요", df.columns)
+    selected_column = st.selectbox("🔎 분석에 사용할 열을 선택하세요", df.columns)
 
     if selected_column:
         text_data = df[selected_column].astype(str).dropna().tolist()
 
-        # 한글/영어 전처리 및 토큰 추출 함수
-        def preprocess(text):
-            # 언어 감지 없이 둘 다 처리 시도
-            korean_tokens = re.findall(r"[가-힣]{2,}", text)
-            english_tokens = [
-                token.text for token in nlp(text)
-                if token.pos_ in ['NOUN', 'VERB'] and len(token.text) > 1
-            ]
-            return " ".join(korean_tokens + english_tokens)
+        korean_texts, english_texts, all_tokens = [], [], []
 
-        # 전처리
-        st.info("텍스트 전처리 및 TF-IDF 분석 중...")
-        processed_texts = [preprocess(text) for text in text_data]
+        for text in text_data:
+            try:
+                lang = detect(text)
+            except:
+                lang = "unknown"
 
-        # TF-IDF 분석
-        vectorizer = TfidfVectorizer(max_features=100)
-        X = vectorizer.fit_transform(processed_texts)
-        tfidf_scores = X.sum(axis=0).A1
-        terms = vectorizer.get_feature_names_out()
+            if lang == "ko":
+                tokens = re.findall(r"[가-힣]{2,}", text)
+                filtered = [t for t in tokens if t not in patent_specific_korean_stopwords and t not in default_ko_stopwords]
+                korean_texts.append(filtered)
+                all_tokens.extend(filtered)
 
-        tfidf_df = pd.DataFrame({"Term": terms, "Score": tfidf_scores})
-        tfidf_df = tfidf_df.sort_values(by="Score", ascending=False).head(30)
+            elif lang == "en":
+                tokens = word_tokenize(re.sub(r"[^a-zA-Z\s]", " ", text).lower())
+                filtered = [t for t in tokens if t not in patent_specific_english_stopwords and t not in default_en_stopwords and len(t) > 1]
+                english_texts.append(filtered)
+                all_tokens.extend(filtered)
 
-        # 결과 출력
-        st.subheader("📋 상위 30개 키워드 (TF-IDF)")
-        st.dataframe(tfidf_df)
+        # 빈도 기반 불용어 추가
+        word_freq = Counter(all_tokens)
+        doc_count = len(korean_texts) + len(english_texts)
+        dynamic_stopwords = {word for word, freq in word_freq.items() if freq / doc_count > 0.8}
+        korean_texts = [[w for w in doc if w not in dynamic_stopwords] for doc in korean_texts]
+        english_texts = [[w for w in doc if w not in dynamic_stopwords] for doc in english_texts]
 
-        # 시각화
-        st.subheader("📊 TF-IDF 키워드 시각화")
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.barh(tfidf_df["Term"][::-1], tfidf_df["Score"][::-1])
-        ax.set_xlabel("TF-IDF Score")
-        ax.set_ylabel("Keyword")
-        st.pyplot(fig)
+        def perform_tfidf(texts):
+            if not texts:
+                return pd.DataFrame(columns=["Term", "Score"])
+            joined = [" ".join(doc) for doc in texts]
+            tfidf = TfidfVectorizer(max_features=1000)
+            X = tfidf.fit_transform(joined)
+            scores = X.sum(axis=0).A1
+            terms = tfidf.get_feature_names_out()
+            df_result = pd.DataFrame({"Term": terms, "Score": scores})
+            return df_result.sort_values(by="Score", ascending=False).head(30)
 
-        # 다운로드 버튼
-        csv = tfidf_df.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="⬇️ 키워드 결과 CSV 다운로드",
-            data=csv,
-            file_name='tfidf_keywords.csv',
-            mime='text/csv'
-        )
+        st.subheader("📋 TF-IDF 키워드 추출 결과 (Korean)")
+        df_ko = perform_tfidf(korean_texts)
+        st.dataframe(df_ko)
+        fig1, ax1 = plt.subplots()
+        ax1.barh(df_ko["Term"][::-1], df_ko["Score"][::-1])
+        st.pyplot(fig1)
+
+        st.subheader("📋 TF-IDF 키워드 추출 결과 (English)")
+        df_en = perform_tfidf(english_texts)
+        st.dataframe(df_en)
+        fig2, ax2 = plt.subplots()
+        ax2.barh(df_en["Term"][::-1], df_en["Score"][::-1])
+        st.pyplot(fig2)
+
+        with pd.ExcelWriter("tfidf_results.xlsx") as writer:
+            df_ko.to_excel(writer, sheet_name="Korean_TFIDF", index=False)
+            df_en.to_excel(writer, sheet_name="English_TFIDF", index=False)
+
+        with open("tfidf_results.xlsx", "rb") as f:
+            st.download_button("⬇️ 결과 엑셀 다운로드", f.read(), file_name="tfidf_results.xlsx")
