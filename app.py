@@ -11,20 +11,18 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import os
 
-import matplotlib.font_manager as fm
-import urllib.request
+from matplotlib import font_manager, rc
 
-# NanumGothic 다운로드 및 등록
-FONT_URL = "https://raw.githubusercontent.com/naver/nanumfont/master/TTF/NanumGothic.ttf"
-FONT_PATH = os.path.join(os.getcwd(), "NanumGothic.ttf")
+# 사전 포함된 폰트 경로
+FONT_PATH = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
+font_manager.fontManager.addfont(FONT_PATH)
 
-if not os.path.exists(FONT_PATH):
-    urllib.request.urlretrieve(FONT_URL, FONT_PATH)
+# 폰트 이름 가져오기 (예: 'NanumGothic')
+font_name = font_manager.FontProperties(fname=FONT_PATH).get_name()
 
-# matplotlib에 폰트 등록
-font_prop = fm.FontProperties(fname=FONT_PATH)
-plt.rcParams["font.family"] = font_prop.get_name()
-plt.rcParams["axes.unicode_minus"] = False
+# 한글 폰트 설정
+rc('font', family=font_name)
+plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
 
 def heuristic_remove_josa(text):
     """간단한 조사 제거용 정규식 (정확도는 낮지만 무난한 대안)"""
