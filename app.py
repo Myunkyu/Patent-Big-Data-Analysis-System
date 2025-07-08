@@ -10,13 +10,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
 from collections import Counter
 import os
-from konlpy.tag import Okt
 
-okt = Okt()
-
-def remove_josa_with_okt(text):
-    """조사, 접속사 등을 형태소 분석하여 제거"""
-    return [word for word, pos in okt.pos(text, norm=True, stem=True) if pos not in ["Josa", "Suffix", "Punctuation", "Conjunction"]]
+def heuristic_remove_josa(text):
+    """간단한 조사 제거용 정규식 (정확도는 낮지만 무난한 대안)"""
+    josa_list = ['을', '를', '이', '가', '은', '는', '에', '의', '으로', '와', '과', '도', '에서', '부터', '까지', '에게', '한테', '보다', '처럼']
+    for josa in josa_list:
+        text = re.sub(rf'(?<=[가-힣]){josa}\b', '', text)
+    return re.findall(r"[가-힣]{2,}", text)
 
 # NLTK resource check
 try:
@@ -71,8 +71,8 @@ if uploaded_file:
                 lang = "unknown"
 
             if lang == "ko":
-                tokens = remove_josa_with_okt(text)
-                filtered = [t for t in tokens if t not in patent_specific_korean_stopwords and t not in default_ko_stopwords and len(t) > 1]
+                tokens = heuristic_remove_josa(text)
+                filtered = [t for t in tokens if t not in patent_specific_korean_stopwords and t not in default_ko_stopwords]
                 korean_texts.append(filtered)
                 all_tokens.extend(filtered)
 
