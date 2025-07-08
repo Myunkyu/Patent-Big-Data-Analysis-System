@@ -66,7 +66,7 @@ if uploaded_file:
                 all_tokens.extend(filtered)
 
             elif lang == "en":
-                tokens = word_tokenize(re.sub(r"[^a-zA-Z\s]", " ", text).lower())
+                tokens = re.sub(r"[^a-zA-Z\s]", " ", text).lower().split()
                 filtered = [t for t in tokens if t not in patent_specific_english_stopwords and t not in default_en_stopwords and len(t) > 1]
                 english_texts.append(filtered)
                 all_tokens.extend(filtered)
