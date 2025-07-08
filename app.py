@@ -15,7 +15,7 @@ import matplotlib.font_manager as fm
 import urllib.request
 
 # NanumGothic 다운로드 및 등록
-FONT_URL = "https://github.com/naver/nanumfont/blob/master/TTF/NanumGothic.ttf?raw=true"
+FONT_URL = "https://raw.githubusercontent.com/naver/nanumfont/master/TTF/NanumGothic.ttf"
 FONT_PATH = os.path.join(os.getcwd(), "NanumGothic.ttf")
 
 if not os.path.exists(FONT_PATH):
