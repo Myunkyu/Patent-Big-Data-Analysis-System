@@ -5,3 +5,4 @@ nltk
 langdetect
 scikit-learn
 matplotlib
+konlpy
