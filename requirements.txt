@@ -6,3 +6,5 @@ langdetect
 scikit-learn
 matplotlib
 konlpy
+wordcloud
+seaborn
