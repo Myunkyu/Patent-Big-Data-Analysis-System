@@ -5,17 +5,27 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from langdetect import detect
+from langdetect.lang_detect_exception import LangDetectException
 from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
 from collections import Counter
+import os
 
-nltk.download("punkt")
-nltk.download("stopwords")
+# NLTK resource check
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+
+try:
+    nltk.data.find("corpora/stopwords")
+except LookupError:
+    nltk.download("stopwords")
 
 st.set_page_config(page_title="TF-IDF 키워드 추출기", layout="wide")
 st.title("🧠 특허 텍스트 기반 TF-IDF 키워드 추출기 (언어별 불용어 적용)")
 
-# 사용자 정의 불용어 리스트 (예시)
+# 사용자 정의 불용어 리스트
 patent_specific_korean_stopwords = set([
     '발명', '청구항', '구성', '기재', '도면', '장치', '포함', '특성', '방법', '단계', '출원', '등록', '효력',
     '권리', '기술', '분야', '해결', '수단', '된', '이용한', '하는', '할', '에', '의', '로', '및', '에서', '과', '와'
@@ -46,7 +56,7 @@ if uploaded_file:
         for text in text_data:
             try:
                 lang = detect(text)
-            except:
+            except LangDetectException:
                 lang = "unknown"
 
             if lang == "ko":
@@ -84,6 +94,7 @@ if uploaded_file:
         st.dataframe(df_ko)
         fig1, ax1 = plt.subplots()
         ax1.barh(df_ko["Term"][::-1], df_ko["Score"][::-1])
+        fig1.tight_layout()
         st.pyplot(fig1)
 
         st.subheader("📋 TF-IDF 키워드 추출 결과 (English)")
@@ -91,6 +102,7 @@ if uploaded_file:
         st.dataframe(df_en)
         fig2, ax2 = plt.subplots()
         ax2.barh(df_en["Term"][::-1], df_en["Score"][::-1])
+        fig2.tight_layout()
         st.pyplot(fig2)
 
         with pd.ExcelWriter("tfidf_results.xlsx") as writer:
