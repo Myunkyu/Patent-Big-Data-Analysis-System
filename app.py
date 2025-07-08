@@ -11,24 +11,20 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import os
 
-import platform
-from matplotlib import font_manager, rc
+import matplotlib.font_manager as fm
+import urllib.request
 
-# 운영체제별 한글 폰트 설정
-if platform.system() == 'Windows':
-    font_name = 'Malgun Gothic'
-elif platform.system() == 'Darwin':  # macOS
-    font_name = 'AppleGothic'
-else:  # Linux (Streamlit Cloud 포함)
-    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-    if os.path.exists(font_path):
-        font_manager.fontManager.addfont(font_path)
-        font_name = 'NanumGothic'
-    else:
-        font_name = 'DejaVu Sans'  # fallback
+# NanumGothic 다운로드 및 등록
+FONT_URL = "https://github.com/naver/nanumfont/blob/master/TTF/NanumGothic.ttf?raw=true"
+FONT_PATH = os.path.join(os.getcwd(), "NanumGothic.ttf")
 
-rc('font', family=font_name)
-plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
+if not os.path.exists(FONT_PATH):
+    urllib.request.urlretrieve(FONT_URL, FONT_PATH)
+
+# matplotlib에 폰트 등록
+font_prop = fm.FontProperties(fname=FONT_PATH)
+plt.rcParams["font.family"] = font_prop.get_name()
+plt.rcParams["axes.unicode_minus"] = False
 
 def heuristic_remove_josa(text):
     """간단한 조사 제거용 정규식 (정확도는 낮지만 무난한 대안)"""
@@ -134,7 +130,8 @@ if uploaded_file:
         st.dataframe(df_ko)
         fig1, ax1 = plt.subplots()
         ax1.barh(df_ko["Term"][::-1], df_ko["Score"][::-1])
-        ax1.set_title("한국어 TF-IDF 키워드")
+        ax1.set_title("한국어 TF-IDF 키워드", fontproperties=font_prop)
+        ax1.tick_params(axis='y', labelsize=10)
         fig1.tight_layout()
         st.pyplot(fig1)
 
