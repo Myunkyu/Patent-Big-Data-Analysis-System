@@ -14,7 +14,7 @@ import os
 from matplotlib import font_manager, rc
 
 # 사전 포함된 폰트 경로
-FONT_PATH = os.path.join(os.path.dirname(__file__), "fonts", "NanumGothic.ttf")
+FONT_PATH = os.path.join(os.path.dirname(__file__), "fonts", "Pretendard-Bold.ttf")
 font_manager.fontManager.addfont(FONT_PATH)
 
 # 폰트 이름 가져오기 (예: 'NanumGothic')
