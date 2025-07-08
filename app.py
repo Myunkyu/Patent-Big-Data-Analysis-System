@@ -13,16 +13,26 @@ import os
 
 from matplotlib import font_manager, rc
 
-# 사전 포함된 폰트 경로
-FONT_PATH = os.path.join(os.path.dirname(__file__), "fonts", "Pretendard-Bold.ttf")
-font_manager.fontManager.addfont(FONT_PATH)
+# Pretendard-Bold.ttf 경로
+FONT_PATH = "./fonts/Pretendard-Bold.ttf"
 
-# 폰트 이름 가져오기 (예: 'NanumGothic')
-font_name = font_manager.FontProperties(fname=FONT_PATH).get_name()
+if os.path.exists(FONT_PATH):
+    font_manager.fontManager.addfont(FONT_PATH)
+    font_prop = font_manager.FontProperties(fname=FONT_PATH)
+    font_name = font_prop.get_name()
+else:
+    if platform.system() == 'Windows':
+        font_name = 'Malgun Gothic'
+    elif platform.system() == 'Darwin':
+        font_name = 'AppleGothic'
+    else:
+        font_name = 'DejaVu Sans'
+    font_prop = font_manager.FontProperties(family=font_name)
 
-# 한글 폰트 설정
-rc('font', family=font_name)
-plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
+# 전역 폰트 설정
+from matplotlib import rc
+rc('font', family=font_prop.get_name())
+plt.rcParams['axes.unicode_minus'] = False
 
 def heuristic_remove_josa(text):
     """간단한 조사 제거용 정규식 (정확도는 낮지만 무난한 대안)"""
@@ -126,6 +136,7 @@ if uploaded_file:
         st.subheader("📋 TF-IDF 키워드 추출 결과 (Korean)")
         df_ko = perform_tfidf(korean_texts)
         st.dataframe(df_ko)
+        
         fig1, ax1 = plt.subplots()
         ax1.barh(df_ko["Term"][::-1], df_ko["Score"][::-1])
         ax1.set_title("한국어 TF-IDF 키워드", fontproperties=font_prop)
