@@ -74,14 +74,24 @@ if uploaded_file:
         # 빈도 기반 불용어 추가
         word_freq = Counter(all_tokens)
         doc_count = len(korean_texts) + len(english_texts)
-        dynamic_stopwords = {word for word, freq in word_freq.items() if freq / doc_count > 0.8}
+        dynamic_stopwords = {word for word, freq in word_freq.items() if freq / doc_count > 0.95}
         korean_texts = [[w for w in doc if w not in dynamic_stopwords] for doc in korean_texts]
         english_texts = [[w for w in doc if w not in dynamic_stopwords] for doc in english_texts]
 
+        st.write(f"📌 한국어 문서 수: {len(korean_texts)}")
+        st.write(f"📌 영어 문서 수: {len(english_texts)}")
+        
         def perform_tfidf(texts):
             if not texts:
                 return pd.DataFrame(columns=["Term", "Score"])
-            joined = [" ".join(doc) for doc in texts]
+        
+            # 공백 문서 제거
+            joined = [" ".join(doc) for doc in texts if doc]
+            joined = [doc for doc in joined if doc.strip() != ""]
+        
+            if not joined:
+                return pd.DataFrame(columns=["Term", "Score"])
+        
             tfidf = TfidfVectorizer(max_features=1000)
             X = tfidf.fit_transform(joined)
             scores = X.sum(axis=0).A1
