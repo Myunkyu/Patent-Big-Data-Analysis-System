@@ -5,6 +5,9 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
 
+# spaCy 모델 자동 설치
+os.system("python -m spacy download en_core_web_sm")
+
 # 웹 설정
 st.set_page_config(page_title="TF-IDF 키워드 추출기", layout="wide")
 st.title("🧠 특허 텍스트 기반 TF-IDF 키워드 추출기")
