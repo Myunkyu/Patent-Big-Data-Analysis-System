@@ -1,3 +1,6 @@
 streamlit
 pandas
+spacy
+scikit-learn
+matplotlib
 openpyxl
